@@ -100,7 +100,6 @@ const server = http.createServer(async (req, res) => {
                     req.on('end', () => {
                         try {
                             const jsonbody = JSON.parse(body); // Parse JSON body
-                            console.log(jsonbody);
                 
                             if (!serverRequestStatus[gameID]) {
                                 serverRequestStatus[gameID] = {};
@@ -136,7 +135,9 @@ const server = http.createServer(async (req, res) => {
         }
     }
 
-    res.end(JSON.stringify(myResponse));
+    if(req.method == "GET"){
+        res.end(JSON.stringify(myResponse));
+    }
 });
 
 server.listen(port, hostname, () => {
