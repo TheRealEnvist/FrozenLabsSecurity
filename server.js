@@ -103,6 +103,9 @@ const server = http.createServer(async (req, res) => {
                     serverRequestStatus[gameID][req.body.serverID].requestingPlayers = req.body.requestingPlayers
                     myResponse.requestingPlayers = req.body.requestingPlayers
                 }
+                if(req.method == "GET"){
+                    myResponse.status = "Still making api"
+                }
             }
         }
     }
