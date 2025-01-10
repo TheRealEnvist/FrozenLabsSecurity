@@ -2,6 +2,7 @@ const http = require('http');
 
 const hostname = '0.0.0.0'; // Your server address (localhost)
 const port = process.env.PORT || 4000; // Your server port
+var serverRequestStatus = {}
 
 async function getRequest(url) {
     try {
@@ -9,15 +10,16 @@ async function getRequest(url) {
             mode: 'cors' // Ensure CORS mode
         });
         if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
+            const errorData = await response.json(); // Attempt to parse the error response
+            throw { status: response.status, data: errorData };
         }
-        const data = await response.json(); // Parse the JSON response        
+        const data = await response.json(); // Parse the JSON response
+        data.status = response.status
         return data;
     } catch (error) {
         console.error('GET request failed:', error);
-        return {};
+        return { message: 'An error occurred', status: error.status || 'unknown' };
     }
-    
 }
 
 // Function for POST request
@@ -32,13 +34,15 @@ async function postRequest(url, payload) {
             body: JSON.stringify(payload)
         });
         if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
+            const errorData = await response.json(); // Attempt to parse the error response
+            throw { status: response.status, data: errorData };
         }
         const data = await response.json(); // Parse the JSON response
+        data.status = response.status
         return data;
     } catch (error) {
-        console.warn('POST request failed:', error);
-        return {error: response.status};
+        console.error('POST request failed:', error);
+        return { message: 'An error occurred', status: error.status || 'unknown' };
     }
 }
 
@@ -68,16 +72,38 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname.includes("/games/")) {
         if (url.pathname.includes("/servers")) {
             const gameID = url.pathname.replace("/games/", "").substring(0, url.pathname.replace("/games/", "").indexOf("/servers"));
+            if(gameID == ""){
+                return
+            }
             const serverList = await getRequest("https://games.roblox.com/v1/games/"+gameID+"/servers/0?sortOrder=2&excludeFullGames=false&limit=100");
             if(!serverList["data"]){
                 serverList["data"] = []
-                myResponse.error = serverList.error
             }
+            console.log(serverList["status"]);
             myResponse.gameID = gameID;
+            myResponse.status = serverList["status"];
             myResponse.servers = serverList["data"];
         }
         if (url.pathname.includes("/server/")) {
-
+            const gameID = url.pathname.replace("/games/", "").substring(0, url.pathname.replace("/games/", "").indexOf("/server/"));
+            if (url.pathname.includes("/server/requestStatus")) {
+                if(req.method == "POST"){
+                    if(serverRequestStatus[gameID] == null){
+                        serverRequestStatus[gameID] = {}
+                        myResponse.createdNewGameProfile = true
+                    }else{
+                        myResponse.createdNewGameProfile = false
+                    }
+                    if(serverRequestStatus[gameID][req.body.serverID] == null){
+                        serverRequestStatus[gameID][req.body.serverID] = {}
+                        myResponse.createdNewServerProfile = true
+                    }else{
+                        myResponse.createdNewServerProfile = false
+                    }
+                    serverRequestStatus[gameID][req.body.serverID].requestingPlayers = req.body.requestingPlayers
+                    myResponse.requestingPlayers = req.body.requestingPlayers
+                }
+            }
         }
     }
 
