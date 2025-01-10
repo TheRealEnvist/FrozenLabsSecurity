@@ -100,7 +100,8 @@ const server = http.createServer(async (req, res) => {
                         res.end('POST request received');
                     });
 
-                    const jsonbody = body.json();
+                    console.log(body);
+                    const jsonbody = JSON.parse(body);
                     if(serverRequestStatus[gameID] == null){
                         serverRequestStatus[gameID] = {}
                         myResponse.createdNewGameProfile = true
