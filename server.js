@@ -89,8 +89,7 @@ const server = http.createServer(async (req, res) => {
             var serverID = url.pathname.substring(url.pathname.indexOf("/server/")+ ("/server/").length,url.pathname.length).replace("/serverRequests", "");
             if (url.pathname.includes("/server/")) {  
                 if(req.method == "POST"){
-                    console.log(req)
-                    console.log(res)
+                    console.log(req.body)
                     const jsonbody = req.json();
                     if(serverRequestStatus[gameID] == null){
                         serverRequestStatus[gameID] = {}
