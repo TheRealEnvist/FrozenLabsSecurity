@@ -89,8 +89,18 @@ const server = http.createServer(async (req, res) => {
             var serverID = url.pathname.substring(url.pathname.indexOf("/server/")+ ("/server/").length,url.pathname.length).replace("/serverRequests", "");
             if (url.pathname.includes("/server/")) {  
                 if(req.method == "POST"){
-                    console.log(res.body)
-                    const jsonbody = res.body.json();
+                    let body = '';
+
+                    req.on('data', chunk => {
+                        body += chunk.toString();
+                    });
+
+                    req.on('end', () => {
+                        console.log(JSON.parse(body));
+                        res.end('POST request received');
+                    });
+
+                    const jsonbody = body.json();
                     if(serverRequestStatus[gameID] == null){
                         serverRequestStatus[gameID] = {}
                         myResponse.createdNewGameProfile = true
