@@ -1,6 +1,6 @@
 const http = require('http');
 
-const hostname = '127.0.0.1'; // Your server address (localhost)
+const hostname = '0.0.0.0'; // Your server address (localhost)
 const port = process.env.PORT || 4000; // Your server port
 
 async function getRequest(url) {
