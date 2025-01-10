@@ -86,25 +86,30 @@ const server = http.createServer(async (req, res) => {
         }
         if (url.pathname.includes("/server/")) {
             const gameID = url.pathname.replace("/games/", "").substring(0, url.pathname.replace("/games/", "").indexOf("/server/"));
-            if (url.pathname.includes("/server/requestStatus")) {
+            var serverID = url.pathname.substring(url.pathname.indexOf("/server/")+ ("/server/").length,url.pathname.length).replace("/serverRequests", "");
+            if (url.pathname.includes("/server/")) {  
                 if(req.method == "POST"){
+                    console.log(req)
+                    console.log(res)
+                    const jsonbody = req.json();
                     if(serverRequestStatus[gameID] == null){
                         serverRequestStatus[gameID] = {}
                         myResponse.createdNewGameProfile = true
                     }else{
                         myResponse.createdNewGameProfile = false
                     }
-                    if(serverRequestStatus[gameID][req.body.serverID] == null){
-                        serverRequestStatus[gameID][req.body.serverID] = {}
+                    if(serverRequestStatus[gameID][serverID] == null){
+                        serverRequestStatus[gameID][serverID] = {}
                         myResponse.createdNewServerProfile = true
                     }else{
                         myResponse.createdNewServerProfile = false
                     }
-                    serverRequestStatus[gameID][req.body.serverID].requestingPlayers = req.body.requestingPlayers
-                    myResponse.requestingPlayers = req.body.requestingPlayers
+                    serverRequestStatus[gameID][serverID].requestingPlayers = jsonbody.requestingPlayers
+                    myResponse.requestingPlayers = jsonbody.requestingPlayers
                 }
                 if(req.method == "GET"){
                     myResponse.status = "Still making api"
+                    myResponse.serverID = serverID
                 }
             }
         }
