@@ -5,11 +5,19 @@ const port = process.env.PORT || 4000; // Your server port
 var serverRequestStatus = {}
 var serverPlayers = {}
 
-async function getRequest(url) {
+async function getRequest(url, nocors) {
     try {
-        const response = await fetch(url, {
-            mode: 'cors' // Ensure CORS mode
-        });
+        var response;
+        if(nocors){
+            response = await fetch(url, {
+                mode: 'no-cors' // Ensure CORS mode
+            });
+        }else{
+            response = await fetch(url, {
+                mode: 'cors' // Ensure CORS mode
+            });
+        }
+        
         if (!response.ok) {
             const errorData = await response.json(); // Attempt to parse the error response
             throw { status: response.status, data: errorData };
@@ -207,6 +215,18 @@ const server = http.createServer(async (req, res) => {
                                     res.end(JSON.stringify({ error: "Invalid JSON body" }));
                                 }
                             });
+                        }
+                    }else{
+                        if(url.pathname.includes("/playerHeadshots")){
+                            var list = serverPlayers[gameID][serverID].players;
+                            var playerids = ""
+                            for (let i = 0; i < list.length; i++) {
+                                playerids = playerids+list[i]+","
+                            }
+                            playerids = playerids.substring(0,playerids.length-1)
+                            var headshots = await getRequest("https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds="+playerids+"&size=50x50&format=Png&isCircular=false", false);
+                            list = headshots.data;
+                            myResponse.headshots = list;
                         }
                     }
                 }
