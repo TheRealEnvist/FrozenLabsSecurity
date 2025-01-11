@@ -130,6 +130,19 @@ const server = http.createServer(async (req, res) => {
                     }
                     
                     if(req.method == "GET"){
+                        if (!serverRequestStatus[gameID]) {
+                            serverRequestStatus[gameID] = {};
+                            myResponse.createdNewGameProfile = true;
+                        } else {
+                            myResponse.createdNewGameProfile = false;
+                        }
+            
+                        if (!serverRequestStatus[gameID][serverID]) {
+                            serverRequestStatus[gameID][serverID] = {};
+                            myResponse.createdNewServerProfile = true;
+                        } else {
+                            myResponse.createdNewServerProfile = false;
+                        }
                         myResponse.requestingPlayers = serverRequestStatus[gameID][serverID].requestingPlayers
                         myResponse.serverID = serverID
                     }
