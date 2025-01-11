@@ -136,7 +136,7 @@ const server = http.createServer(async (req, res) => {
                 }else{
                     if(url.pathname.includes("/players")){
                         if(req.method == "GET"){
-                            if(!serverPlayers[gameID] || !serverPlayers[gameID][serverID]){
+                            if(serverPlayers[gameID] == null || serverPlayers[gameID][serverID] == null){
                                 myResponse.players = []
                                 myResponse.lastUpdated = 0
                             }else{
