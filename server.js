@@ -172,13 +172,20 @@ const server = http.createServer(async (req, res) => {
                                         myResponse.createdNewServerProfile = false;
                                     }
                         
-                                    serverPlayers[gameID][serverID].players = jsonbody.players;
-                                    myResponse.players = jsonbody.players;
+                                    serverPlayers[gameID][serverID].players = jsonbody["players"];
+                                    myResponse.players = jsonbody["players"];
                                     const now = new Date();
                                     const timestampInMilliseconds = now.getTime();
                                     const timestampInMinutes = Math.floor(timestampInMilliseconds / 60000);
                                     serverPlayers[gameID][serverID].lastUpdated = timestampInMinutes
                                     myResponse.lastUpdated = serverPlayers[gameID][serverID].lastUpdated
+                                    if (!serverRequestStatus[gameID]) {
+                                        serverRequestStatus[gameID] = {};
+                                    }
+                        
+                                    if (!serverRequestStatus[gameID][serverID]) {
+                                        serverRequestStatus[gameID][serverID] = {};
+                                    }
                                     serverRequestStatus[gameID][serverID].requestingPlayers = false
                                     res.end(JSON.stringify(myResponse)); // Send response after processing
                                 } catch (err) {
