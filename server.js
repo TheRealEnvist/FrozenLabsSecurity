@@ -218,6 +218,21 @@ const server = http.createServer(async (req, res) => {
                         }
                     }else{
                         if(url.pathname.includes("/playerHeadshots")){
+                            console.log(gameID)
+                            console.log(serverID)
+                            if (!serverPlayers[gameID]) {
+                                serverPlayers[gameID] = {};
+                                myResponse.createdNewGameProfile = true;
+                            } else {
+                                myResponse.createdNewGameProfile = false;
+                            }
+                
+                            if (!serverPlayers[gameID][serverID]) {
+                                serverPlayers[gameID][serverID] = {};
+                                myResponse.createdNewServerProfile = true;
+                            } else {
+                                myResponse.createdNewServerProfile = false;
+                            }
                             var list = serverPlayers[gameID][serverID].players;
                             var playerids = ""
                             for (let i = 0; i < list.length; i++) {
