@@ -95,7 +95,7 @@ const server = http.createServer(async (req, res) => {
         }
         if (url.pathname.includes("/server/")) {
             const gameID = url.pathname.replace("/games/", "").substring(0, url.pathname.replace("/games/", "").indexOf("/server/"));
-            var serverID = url.pathname.substring(url.pathname.indexOf("/server/")+ ("/server/").length,url.pathname.length).replace("/serverRequests", "").replace("/players", "");
+            var serverID = url.pathname.substring(url.pathname.indexOf("/server/")+ ("/server/").length,url.pathname.length).replace("/serverRequests", "").replace("/players", "").replace("/playerHeadshots","");
             if (url.pathname.includes("/server/")) {  
                 if(url.pathname.includes("/serverRequests")){
                     if (req.method === "POST") {
@@ -218,8 +218,6 @@ const server = http.createServer(async (req, res) => {
                         }
                     }else{
                         if(url.pathname.includes("/playerHeadshots")){
-                            console.log(gameID)
-                            console.log(serverID)
                             if (!serverPlayers[gameID]) {
                                 serverPlayers[gameID] = {};
                                 myResponse.createdNewGameProfile = true;
