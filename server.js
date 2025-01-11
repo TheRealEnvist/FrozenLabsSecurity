@@ -3,6 +3,7 @@ const http = require('http');
 const hostname = '0.0.0.0'; // Your server address (localhost)
 const port = process.env.PORT || 4000; // Your server port
 var serverRequestStatus = {}
+var serverPlayers = {}
 
 async function getRequest(url) {
     try {
@@ -86,51 +87,112 @@ const server = http.createServer(async (req, res) => {
         }
         if (url.pathname.includes("/server/")) {
             const gameID = url.pathname.replace("/games/", "").substring(0, url.pathname.replace("/games/", "").indexOf("/server/"));
-            var serverID = url.pathname.substring(url.pathname.indexOf("/server/")+ ("/server/").length,url.pathname.length).replace("/serverRequests", "");
+            var serverID = url.pathname.substring(url.pathname.indexOf("/server/")+ ("/server/").length,url.pathname.length).replace("/serverRequests", "").replace("/players", "");
             if (url.pathname.includes("/server/")) {  
-                if (req.method === "POST") {
-                    let body = '';
-                
-                    // Collect data chunks
-                    req.on('data', chunk => {
-                        body += chunk.toString(); // Convert Buffer to string
-                    });
-                
-                    // Process the complete body
-                    req.on('end', () => {
-                        try {
-                            const jsonbody = JSON.parse(body); // Parse JSON body
-                
-                            if (!serverRequestStatus[gameID]) {
-                                serverRequestStatus[gameID] = {};
-                                myResponse.createdNewGameProfile = true;
-                            } else {
-                                myResponse.createdNewGameProfile = false;
+                if(url.pathname.includes("/serverRequests")){
+                    if (req.method === "POST") {
+                        let body = '';
+                    
+                        // Collect data chunks
+                        req.on('data', chunk => {
+                            body += chunk.toString(); // Convert Buffer to string
+                        });
+                    
+                        // Process the complete body
+                        req.on('end', () => {
+                            try {
+                                const jsonbody = JSON.parse(body); // Parse JSON body
+                    
+                                if (!serverRequestStatus[gameID]) {
+                                    serverRequestStatus[gameID] = {};
+                                    myResponse.createdNewGameProfile = true;
+                                } else {
+                                    myResponse.createdNewGameProfile = false;
+                                }
+                    
+                                if (!serverRequestStatus[gameID][serverID]) {
+                                    serverRequestStatus[gameID][serverID] = {};
+                                    myResponse.createdNewServerProfile = true;
+                                } else {
+                                    myResponse.createdNewServerProfile = false;
+                                }
+                    
+                                serverRequestStatus[gameID][serverID].requestingPlayers = jsonbody.requestingPlayers;
+                                myResponse.requestingPlayers = jsonbody.requestingPlayers;
+                    
+                                res.end(JSON.stringify(myResponse)); // Send response after processing
+                            } catch (err) {
+                                console.error("Error parsing JSON body:", err);
+                                res.statusCode = 400; // Bad request
+                                res.end(JSON.stringify({ error: "Invalid JSON body" }));
                             }
-                
-                            if (!serverRequestStatus[gameID][serverID]) {
-                                serverRequestStatus[gameID][serverID] = {};
-                                myResponse.createdNewServerProfile = true;
-                            } else {
-                                myResponse.createdNewServerProfile = false;
+                        });
+                    }
+                    
+                    if(req.method == "GET"){
+                        myResponse.requestingPlayers = serverRequestStatus[gameID][serverID].requestingPlayers
+                        myResponse.serverID = serverID
+                    }
+                }else{
+                    if(url.pathname.includes("/players")){
+                        if(req.method == "GET"){
+                            if(!serverPlayers[gameID] || !serverPlayers[gameID][serverID]){
+                                myResponse.players = []
+                                myResponse.lastUpdated = 0
+                            }else{
+                                myResponse.players = serverPlayers[gameID][serverID].players
+                                myResponse.lastUpdated = serverPlayers[gameID][serverID].lastUpdated
                             }
-                
-                            serverRequestStatus[gameID][serverID].requestingPlayers = jsonbody.requestingPlayers;
-                            myResponse.requestingPlayers = jsonbody.requestingPlayers;
-                
-                            res.end(JSON.stringify(myResponse)); // Send response after processing
-                        } catch (err) {
-                            console.error("Error parsing JSON body:", err);
-                            res.statusCode = 400; // Bad request
-                            res.end(JSON.stringify({ error: "Invalid JSON body" }));
                         }
-                    });
+
+                        if (req.method === "POST") {
+                            let body = '';
+                        
+                            // Collect data chunks
+                            req.on('data', chunk => {
+                                body += chunk.toString(); // Convert Buffer to string
+                            });
+                        
+                            // Process the complete body
+                            req.on('end', () => {
+                                try {
+                                    const jsonbody = JSON.parse(body); // Parse JSON body
+                        
+                                    if (!serverPlayers[gameID]) {
+                                        serverPlayers[gameID] = {};
+                                        myResponse.createdNewGameProfile = true;
+                                    } else {
+                                        myResponse.createdNewGameProfile = false;
+                                    }
+                        
+                                    if (!serverPlayers[gameID][serverID]) {
+                                        serverPlayers[gameID][serverID] = {};
+                                        myResponse.createdNewServerProfile = true;
+                                    } else {
+                                        myResponse.createdNewServerProfile = false;
+                                    }
+                        
+                                    serverPlayers[gameID][serverID].players = jsonbody.players;
+                                    myResponse.players = jsonbody.players;
+                                    const now = new Date();
+                                    const timestampInMilliseconds = now.getTime();
+                                    const timestampInMinutes = Math.floor(timestampInMilliseconds / 60000);
+                                    serverPlayers[gameID][serverID].lastUpdated = timestampInMinutes
+                                    myResponse.lastUpdated = serverPlayers[gameID][serverID].lastUpdated
+                                    serverRequestStatus[gameID][serverID].requestingPlayers = false
+                                    res.end(JSON.stringify(myResponse)); // Send response after processing
+                                } catch (err) {
+                                    console.error("Error parsing JSON body:", err);
+                                    res.statusCode = 400; // Bad request
+                                    res.end(JSON.stringify({ error: "Invalid JSON body" }));
+                                }
+                            });
+                        }
+                    }
                 }
                 
-                if(req.method == "GET"){
-                    myResponse.status = "Still making api"
-                    myResponse.serverID = serverID
-                }
+
+
             }
         }
     }
