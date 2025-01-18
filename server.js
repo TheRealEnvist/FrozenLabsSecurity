@@ -235,6 +235,7 @@ const server = http.createServer(async (req, res) => {
                                 return
                             }
                             var list = serverPlayers[gameID][serverID].players;
+                            console.log(list)
                             var playerids = ""
                             for (let i = 0; i < list.length; i++) {
                                 playerids = playerids+list[i]["UserID"]+","
