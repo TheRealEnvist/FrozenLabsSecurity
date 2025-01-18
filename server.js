@@ -234,7 +234,7 @@ const server = http.createServer(async (req, res) => {
                             var list = serverPlayers[gameID][serverID].players;
                             var playerids = ""
                             for (let i = 0; i < list.length; i++) {
-                                playerids = playerids+list[i]+","
+                                playerids = playerids+list[i]["UserID"]+","
                             }
                             playerids = playerids.substring(0,playerids.length-1)
                             var headshots = await getRequest("https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds="+playerids+"&size=50x50&format=Png&isCircular=false", false);
