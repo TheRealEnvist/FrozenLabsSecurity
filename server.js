@@ -231,6 +231,9 @@ const server = http.createServer(async (req, res) => {
                             } else {
                                 myResponse.createdNewServerProfile = false;
                             }
+                            if(serverPlayers[gameID][serverID] == null){
+                                return
+                            }
                             var list = serverPlayers[gameID][serverID].players;
                             var playerids = ""
                             for (let i = 0; i < list.length; i++) {
