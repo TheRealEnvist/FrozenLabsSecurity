@@ -1,264 +1,188 @@
+const express = require('express');
+const bodyParser = require('body-parser');
+const cors = require('cors');
 const http = require('http');
+const { Server } = require('socket.io');
 
-const hostname = '0.0.0.0'; // Your server address (localhost)
-const port = process.env.PORT || 4000; // Your server port
-var serverRequestStatus = {}
-var serverPlayers = {}
-
-async function getRequest(url, nocors) {
-    try {
-        var response;
-        if(nocors){
-            response = await fetch(url, {
-                mode: 'no-cors' // Ensure CORS mode
-            });
-        }else{
-            response = await fetch(url, {
-                mode: 'cors' // Ensure CORS mode
-            });
-        }
-        
-        if (!response.ok) {
-            const errorData = await response.json(); // Attempt to parse the error response
-            throw { status: response.status, data: errorData };
-        }
-        const data = await response.json(); // Parse the JSON response
-        data.status = response.status
-        return data;
-    } catch (error) {
-        console.error('GET request failed:', error);
-        return { message: 'An error occurred', status: error.status || 'unknown' };
-    }
-}
-
-// Function for POST request
-async function postRequest(url, payload) {
-    try {
-        const response = await fetch(url, {
-            method: 'POST',
-            mode: 'cors', // Ensure CORS mode
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        });
-        if (!response.ok) {
-            const errorData = await response.json(); // Attempt to parse the error response
-            throw { status: response.status, data: errorData };
-        }
-        const data = await response.json(); // Parse the JSON response
-        data.status = response.status
-        return data;
-    } catch (error) {
-        console.error('POST request failed:', error);
-        return { message: 'An error occurred', status: error.status || 'unknown' };
-    }
-}
-
-const server = http.createServer(async (req, res) => {
-    const url = new URL(req.url, `http://${req.headers.host}`);
-
-    // Set CORS headers
-    res.setHeader('Access-Control-Allow-Origin', '*'); // Allow all origins
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS'); // Allowed methods
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type'); // Allowed headers
-
-    // Handle preflight requests
-    if (req.method === 'OPTIONS') {
-        res.writeHead(204); // No content
-        res.end();
-        return;
-    }
-
-    res.statusCode = 200;
-    res.setHeader('Content-Type', 'application/json');
-    const myResponse = {};
-
-    if (url.pathname === "/status") {
-        myResponse.status = true;
-    }
-
-    if (url.pathname.includes("/games/")) {
-        if (url.pathname.includes("/servers")) {
-            const gameID = url.pathname.replace("/games/", "").substring(0, url.pathname.replace("/games/", "").indexOf("/servers"));
-            if(gameID == ""){
-                return
-            }
-            const serverList = await getRequest("https://games.roblox.com/v1/games/"+gameID+"/servers/0?sortOrder=2&excludeFullGames=false&limit=100");
-            if(!serverList["data"]){
-                serverList["data"] = []
-            }
-            console.log(serverList["status"]);
-            myResponse.gameID = gameID;
-            myResponse.status = serverList["status"];
-            myResponse.servers = serverList["data"];
-        }
-        if (url.pathname.includes("/server/")) {
-            const gameID = url.pathname.replace("/games/", "").substring(0, url.pathname.replace("/games/", "").indexOf("/server/"));
-            var serverID = url.pathname.substring(url.pathname.indexOf("/server/")+ ("/server/").length,url.pathname.length).replace("/serverRequests", "").replace("/players", "").replace("/playerHeadshots","");
-            if (url.pathname.includes("/server/")) {  
-                if(url.pathname.includes("/serverRequests")){
-                    if (req.method === "POST") {
-                        let body = '';
-                    
-                        // Collect data chunks
-                        req.on('data', chunk => {
-                            body += chunk.toString(); // Convert Buffer to string
-                        });
-                    
-                        // Process the complete body
-                        req.on('end', () => {
-                            try {
-                                const jsonbody = JSON.parse(body); // Parse JSON body
-                    
-                                if (!serverRequestStatus[gameID]) {
-                                    serverRequestStatus[gameID] = {};
-                                    myResponse.createdNewGameProfile = true;
-                                } else {
-                                    myResponse.createdNewGameProfile = false;
-                                }
-                    
-                                if (!serverRequestStatus[gameID][serverID]) {
-                                    serverRequestStatus[gameID][serverID] = {};
-                                    myResponse.createdNewServerProfile = true;
-                                } else {
-                                    myResponse.createdNewServerProfile = false;
-                                }
-                    
-                                serverRequestStatus[gameID][serverID].requestingPlayers = jsonbody.requestingPlayers;
-                                myResponse.requestingPlayers = jsonbody.requestingPlayers;
-                    
-                                res.end(JSON.stringify(myResponse)); // Send response after processing
-                            } catch (err) {
-                                console.error("Error parsing JSON body:", err);
-                                res.statusCode = 400; // Bad request
-                                res.end(JSON.stringify({ error: "Invalid JSON body" }));
-                            }
-                        });
-                    }
-                    
-                    if(req.method == "GET"){
-                        if (!serverRequestStatus[gameID]) {
-                            serverRequestStatus[gameID] = {};
-                            myResponse.createdNewGameProfile = true;
-                        } else {
-                            myResponse.createdNewGameProfile = false;
-                        }
-            
-                        if (!serverRequestStatus[gameID][serverID]) {
-                            serverRequestStatus[gameID][serverID] = {};
-                            myResponse.createdNewServerProfile = true;
-                        } else {
-                            myResponse.createdNewServerProfile = false;
-                        }
-                        myResponse.requestingPlayers = serverRequestStatus[gameID][serverID].requestingPlayers
-                        myResponse.serverID = serverID
-                    }
-                }else{
-                    if(url.pathname.includes("/players")){
-                        if(req.method == "GET"){
-                            if(serverPlayers[gameID] == null || serverPlayers[gameID][serverID] == null){
-                                myResponse.players = []
-                                myResponse.lastUpdated = 0
-                            }else{
-                                myResponse.players = serverPlayers[gameID][serverID].players
-                                myResponse.lastUpdated = serverPlayers[gameID][serverID].lastUpdated
-                            }
-                        }
-
-                        if (req.method === "POST") {
-                            let body = '';
-                        
-                            // Collect data chunks
-                            req.on('data', chunk => {
-                                body += chunk.toString(); // Convert Buffer to string
-                            });
-                        
-                            // Process the complete body
-                            req.on('end', () => {
-                                try {
-                                    const jsonbody = JSON.parse(body); // Parse JSON body
-                        
-                                    if (!serverPlayers[gameID]) {
-                                        serverPlayers[gameID] = {};
-                                        myResponse.createdNewGameProfile = true;
-                                    } else {
-                                        myResponse.createdNewGameProfile = false;
-                                    }
-                        
-                                    if (!serverPlayers[gameID][serverID]) {
-                                        serverPlayers[gameID][serverID] = {};
-                                        myResponse.createdNewServerProfile = true;
-                                    } else {
-                                        myResponse.createdNewServerProfile = false;
-                                    }
-                        
-                                    serverPlayers[gameID][serverID].players = jsonbody["players"];
-                                    myResponse.players = jsonbody["players"];
-                                    const now = new Date();
-                                    const timestampInMilliseconds = now.getTime();
-                                    const timestampInMinutes = Math.floor(timestampInMilliseconds / 60000);
-                                    serverPlayers[gameID][serverID].lastUpdated = timestampInMinutes
-                                    myResponse.lastUpdated = serverPlayers[gameID][serverID].lastUpdated
-                                    if (!serverRequestStatus[gameID]) {
-                                        serverRequestStatus[gameID] = {};
-                                    }
-                        
-                                    if (!serverRequestStatus[gameID][serverID]) {
-                                        serverRequestStatus[gameID][serverID] = {};
-                                    }
-                                    serverRequestStatus[gameID][serverID].requestingPlayers = false
-                                    res.end(JSON.stringify(myResponse)); // Send response after processing
-                                } catch (err) {
-                                    console.error("Error parsing JSON body:", err);
-                                    res.statusCode = 400; // Bad request
-                                    res.end(JSON.stringify({ error: "Invalid JSON body" }));
-                                }
-                            });
-                        }
-                    }else{
-                        if(url.pathname.includes("/playerHeadshots")){
-                            if (!serverPlayers[gameID]) {
-                                serverPlayers[gameID] = {};
-                                myResponse.createdNewGameProfile = true;
-                            } else {
-                                myResponse.createdNewGameProfile = false;
-                            }
-                
-                            if (!serverPlayers[gameID][serverID]) {
-                                serverPlayers[gameID][serverID] = {};
-                                myResponse.createdNewServerProfile = true;
-                            } else {
-                                myResponse.createdNewServerProfile = false;
-                            }
-                            if(serverPlayers[gameID][serverID] == null){
-                                return
-                            }
-                            var list = serverPlayers[gameID][serverID].players;
-                            console.log(list)
-                            var playerids = ""
-                            for (let i = 0; i < list.length; i++) {
-                                playerids = playerids+list[i]["UserID"]+","
-                            }
-                            playerids = playerids.substring(0,playerids.length-1)
-                            var headshots = await getRequest("https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds="+playerids+"&size=50x50&format=Png&isCircular=false", false);
-                            list = headshots.data;
-                            myResponse.headshots = list;
-                        }
-                    }
-                }
-                
-
-
-            }
-        }
-    }
-
-    if(req.method == "GET"){
-        res.end(JSON.stringify(myResponse));
-    }
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST']
+  }
 });
 
-server.listen(port, hostname, () => {
-    console.log(`Server running at http://${hostname}:${port}/`);
+app.use(bodyParser.json());
+app.use(cors());
+
+const serverRequestStatus = {};
+const serverPlayers = {};
+const chatMessages = [];
+
+async function getRequest(url, nocors) {
+  try {
+    const response = await fetch(url, {
+      mode: nocors ? 'no-cors' : 'cors'
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw { status: response.status, data: errorData };
+    }
+
+    const data = await response.json();
+    data.status = response.status;
+    return data;
+  } catch (error) {
+    console.error('GET request failed:', error);
+    return { message: 'An error occurred', status: error.status || 'unknown' };
+  }
+}
+
+async function postRequest(url, payload) {
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw { status: response.status, data: errorData };
+    }
+
+    const data = await response.json();
+    data.status = response.status;
+    return data;
+  } catch (error) {
+    console.error('POST request failed:', error);
+    return { message: 'An error occurred', status: error.status || 'unknown' };
+  }
+}
+
+// Endpoint to handle chat messages
+app.post('/games/:gameID/server/:serverID/chat', (req, res) => {
+  const { gameID, serverID } = req.params;
+  const { username, message } = req.body;
+
+  if (!username || !message) {
+    return res.status(400).send('Username and message are required.');
+  }
+
+  const chatEntry = { gameID, serverID, username, message, timestamp: new Date().toISOString() };
+  chatMessages.push(chatEntry);
+  io.emit('chat-message', chatEntry);
+  res.status(200).send('Message received and broadcasted.');
+});
+
+app.get('/games/:gameID/server/:serverID/chat', (req, res) => {
+  const { gameID, serverID } = req.params;
+  const filteredMessages = chatMessages.filter(
+    (msg) => msg.gameID === gameID && msg.serverID === serverID
+  );
+  res.json(filteredMessages);
+});
+
+app.post('/games/:gameID/server/:serverID/requests', (req, res) => {
+  const { gameID, serverID } = req.params;
+  const { requestingPlayers } = req.body;
+
+  if (!serverRequestStatus[gameID]) {
+    serverRequestStatus[gameID] = {};
+  }
+
+  if (!serverRequestStatus[gameID][serverID]) {
+    serverRequestStatus[gameID][serverID] = {};
+  }
+
+  serverRequestStatus[gameID][serverID].requestingPlayers = requestingPlayers;
+  res.json({ gameID, serverID, requestingPlayers });
+});
+
+app.get('/games/:gameID/server/:serverID/requests', (req, res) => {
+  const { gameID, serverID } = req.params;
+
+  if (!serverRequestStatus[gameID] || !serverRequestStatus[gameID][serverID]) {
+    return res.json({ requestingPlayers: null });
+  }
+
+  res.json({
+    requestingPlayers: serverRequestStatus[gameID][serverID].requestingPlayers
+  });
+});
+
+app.post('/games/:gameID/server/:serverID/players', (req, res) => {
+  const { gameID, serverID } = req.params;
+  const { players } = req.body;
+
+  if (!serverPlayers[gameID]) {
+    serverPlayers[gameID] = {};
+  }
+
+  if (!serverPlayers[gameID][serverID]) {
+    serverPlayers[gameID][serverID] = {};
+  }
+
+  serverPlayers[gameID][serverID].players = players;
+  serverPlayers[gameID][serverID].lastUpdated = Date.now();
+
+  res.json({ players, lastUpdated: serverPlayers[gameID][serverID].lastUpdated });
+});
+
+app.get('/games/:gameID/server/:serverID/players', (req, res) => {
+  const { gameID, serverID } = req.params;
+
+  if (!serverPlayers[gameID] || !serverPlayers[gameID][serverID]) {
+    return res.json({ players: [], lastUpdated: 0 });
+  }
+
+  res.json({
+    players: serverPlayers[gameID][serverID].players,
+    lastUpdated: serverPlayers[gameID][serverID].lastUpdated
+  });
+});
+
+// Endpoint for player headshots
+app.get('/games/:gameID/server/:serverID/playerHeadshots', async (req, res) => {
+  const { gameID, serverID } = req.params;
+
+  if (!serverPlayers[gameID] || !serverPlayers[gameID][serverID]) {
+    return res.json({ headshots: [] });
+  }
+
+  const players = serverPlayers[gameID][serverID].players || [];
+  const playerIds = players.map((player) => player.UserID).join(',');
+
+  try {
+    const headshots = await getRequest(
+      `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${playerIds}&size=50x50&format=Png&isCircular=false`,
+      false
+    );
+
+    res.json({ headshots: headshots.data || [] });
+  } catch (error) {
+    console.error('Error fetching player headshots:', error);
+    res.status(500).json({ error: 'Failed to fetch player headshots.' });
+  }
+});
+
+// WebSocket setup
+io.on('connection', (socket) => {
+  console.log('A user connected:', socket.id);
+  socket.emit('chat-history', chatMessages);
+
+  socket.on('disconnect', () => {
+    console.log('User disconnected:', socket.id);
+  });
+});
+
+// Start the server
+const PORT = process.env.PORT || 4000;
+server.listen(PORT, () => {
+  console.log(`Server running on http://0.0.0.0:${PORT}`);
 });
