@@ -173,7 +173,7 @@ app.get('/games/:gameID/server/:serverID/playerHeadshots', async (req, res) => {
 
     var editedHeadshots = headshots.data
 
-    headshots.data.array.forEach((data, index, array) => {
+    headshots.data.forEach((data, index, array) => {
         const userdata = findInList(players, "UserID", data["targetId"])
         editedHeadshots[index]["PlayerInformation"] = userdata
     });
