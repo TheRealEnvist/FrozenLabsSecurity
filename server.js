@@ -65,6 +65,13 @@ async function postRequest(url, payload) {
   }
 }
 
+function findInList(list, key, value) {
+    if (!Array.isArray(list)) {
+        throw new Error("The first argument must be an array.");
+    }
+    return list.find(item => item[key] === value) || null;
+}
+
 // Endpoint to handle chat messages
 app.post('/games/:gameID/server/:serverID/chat', (req, res) => {
   const { gameID, serverID } = req.params;
@@ -164,7 +171,14 @@ app.get('/games/:gameID/server/:serverID/playerHeadshots', async (req, res) => {
       false
     );
 
-    res.json({ headshots: headshots.data || [] });
+    var editedHeadshots = headshots.data
+
+    headshots.data.array.forEach((data, index, array) => {
+        const userdata = findInList(players, "UserID", data["targetId"])
+        editedHeadshots[index]["PlayerInformation"] = userdata
+    });
+
+    res.json({ headshots: editedHeadshots || [] });
   } catch (error) {
     console.error('Error fetching player headshots:', error);
     res.status(500).json({ error: 'Failed to fetch player headshots.' });
