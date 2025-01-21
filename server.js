@@ -171,6 +171,30 @@ app.get('/games/:gameID/server/:serverID/playerHeadshots', async (req, res) => {
   }
 });
 
+app.get('/status', (req, res) => {
+  res.json({ status: true });
+});
+
+app.get('/games/:gameID/servers', async (req, res) => {
+  const { gameID } = req.params;
+
+  try {
+    const serverList = await getRequest(
+      `https://games.roblox.com/v1/games/${gameID}/servers/0?sortOrder=2&excludeFullGames=false&limit=100`,
+      false
+    );
+
+    res.json({
+      gameID,
+      status: serverList.status,
+      servers: serverList.data || []
+    });
+  } catch (error) {
+    console.error('Error fetching servers:', error);
+    res.status(500).json({ error: 'Failed to fetch servers.' });
+  }
+});
+
 // WebSocket setup
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
