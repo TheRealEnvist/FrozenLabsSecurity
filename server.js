@@ -3,7 +3,6 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
-const axios = require('axios');
 
 const app = express();
 const server = http.createServer(app);
@@ -66,22 +65,32 @@ async function postRequest(url, payload) {
   }
 }
 
-  // Function to handle retries with exponential backoff
-  const fetchWithRetry = async (url,maxRetries = 5,retries = 0) => {
-    try {
-      const response = await axios.get(url);
-      return response;
-    } catch (error) {
-      if (error.response && error.response.status === 429 && retries < maxRetries) {
-        const retryAfter = error.response.headers['retry-after'] || (2 ** retries * 100); // Exponential backoff
-        console.warn(`Received 429, retrying after ${retryAfter}ms (attempt ${retries + 1})`);
-        await new Promise(resolve => setTimeout(resolve, retryAfter));
-        return fetchWithRetry(url, retries + 1);
-      } else {
-        throw error; // Propagate the error if not 429 or retries exceeded
-      }
+async function fetchWithRetry(url, retries = 0, maxRetries = 5) {
+  try {
+    const response = await fetch(url);
+
+    if (response.status === 429 && retries < maxRetries) {
+      const retryAfter = response.headers.get('retry-after')
+        ? parseInt(response.headers.get('retry-after')) * 1000
+        : 2 ** retries * 100; // Exponential backoff
+      console.warn(`Received 429, retrying after ${retryAfter}ms (attempt ${retries + 1})`);
+      await new Promise(resolve => setTimeout(resolve, retryAfter));
+      return fetchWithRetry(url, retries + 1, maxRetries);
     }
-  };
+
+    return response;
+  } catch (error) {
+    if (retries < maxRetries) {
+      const retryAfter = 2 ** retries * 100; // Exponential backoff
+      console.warn(`Error encountered, retrying after ${retryAfter}ms (attempt ${retries + 1}):`, error);
+      await new Promise(resolve => setTimeout(resolve, retryAfter));
+      return fetchWithRetry(url, retries + 1, maxRetries);
+    } else {
+      throw error; // Propagate the error if retries are exceeded
+    }
+  }
+}
+
 
 function findInList(list, key, value) {
     if (!Array.isArray(list)) {
@@ -209,18 +218,18 @@ app.get('/status', (req, res) => {
 
 app.get('/games/:gameID/servers', async (req, res) => {
   const { gameID } = req.params;
-  const maxRetries = 5; // Maximum number of retries
 
   try {
-    const serverList = await fetchWithRetry(
-      `https://games.roblox.com/v1/games/${gameID}/servers/0?sortOrder=2&excludeFullGames=false&limit=100`,
-      maxRetries
+    const serverListResponse = await fetchWithRetry(
+      `https://games.roblox.com/v1/games/${gameID}/servers/0?sortOrder=2&excludeFullGames=false&limit=100`
     );
+
+    const serverList = await serverListResponse.json();
 
     res.json({
       gameID,
-      status: serverList.status,
-      servers: serverList.data || [],
+      status: serverListResponse.status,
+      servers: serverList || [],
     });
   } catch (error) {
     console.error('Error fetching servers:', error);
