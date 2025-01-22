@@ -65,8 +65,13 @@ async function postRequest(url, payload) {
   }
 }
 
-async function fetchWithRetry(url, retries = 0, maxRetries = 5) {
+async function fetchWithRetry(url, retries = 0, maxRetries = 5, delayBetweenRequests = 10) {
   try {
+    if (delayBetweenRequests > 0 && retries > 0) {
+      console.log(`Adding a delay of ${delayBetweenRequests} seconds before retry...`);
+      await new Promise(resolve => setTimeout(resolve, delayBetweenRequests * 1000));
+    }
+
     const response = await fetch(url);
 
     if (response.status === 429 && retries < maxRetries) {
@@ -75,7 +80,7 @@ async function fetchWithRetry(url, retries = 0, maxRetries = 5) {
         : 2 ** retries * 100; // Exponential backoff
       console.warn(`Received 429, retrying after ${retryAfter}ms (attempt ${retries + 1})`);
       await new Promise(resolve => setTimeout(resolve, retryAfter));
-      return fetchWithRetry(url, retries + 1, maxRetries);
+      return fetchWithRetry(url, retries + 1, maxRetries, delayBetweenRequests);
     }
 
     return response;
@@ -84,12 +89,13 @@ async function fetchWithRetry(url, retries = 0, maxRetries = 5) {
       const retryAfter = 2 ** retries * 100; // Exponential backoff
       console.warn(`Error encountered, retrying after ${retryAfter}ms (attempt ${retries + 1}):`, error);
       await new Promise(resolve => setTimeout(resolve, retryAfter));
-      return fetchWithRetry(url, retries + 1, maxRetries);
+      return fetchWithRetry(url, retries + 1, maxRetries, delayBetweenRequests);
     } else {
       throw error; // Propagate the error if retries are exceeded
     }
   }
 }
+
 
 
 function findInList(list, key, value) {
@@ -221,7 +227,7 @@ app.get('/games/:gameID/servers', async (req, res) => {
 
   try {
     const serverListResponse = await fetchWithRetry(
-      `https://games.roblox.com/v1/games/${gameID}/servers/0?sortOrder=2&excludeFullGames=false&limit=100`
+      `https://games.roblox.com/v1/games/${gameID}/servers/0?sortOrder=2&excludeFullGames=false&limit=100`,10
     );
 
     const serverList = await serverListResponse.json();
