@@ -269,7 +269,7 @@ app.get('/profile/:code/register', async (req, res) => {
       ["grant_type"]: "authorization_code",
       ["client_id"]: "1027663679860863056",
       ["client_secret"]: "RBX-gTrSwFIOikmYDaWRZ6F4x_8Ne2zF5wyUsrZa1_EsqRLwbORcliwevszHUesW8kup"
-    },{ contentType: 'application/json' });
+    },{ contentType: 'application/x-www-form-urlencoded' });
     if(Verifing["status"] == 200){
       res.status(200).json({data:  Verifing});
     }else{
