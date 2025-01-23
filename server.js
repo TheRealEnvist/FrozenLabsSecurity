@@ -144,6 +144,11 @@ app.get('/games/:gameID/server/:serverID/chat', (req, res) => {
   });
 });
 
+app.get('/games/:gameID/server/:serverID/chat-server', (req, res) => {
+
+  res.json("Hiii this is the chat server :)");
+});
+
 app.post('/games/:gameID/server/:serverID/requests', (req, res) => {
   const { gameID, serverID } = req.params;
   const { requestingPlayers } = req.body;
