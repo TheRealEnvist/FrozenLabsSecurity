@@ -123,7 +123,6 @@ app.post('/games/:gameID/server/:serverID/chat', (req, res) => {
 
   const chatEntry = {username, display, message, timestamp: new Date().toISOString() };
   ServerChats[gameID][serverID].unshift(chatEntry)
-  chatMessages.push(chatEntry);
   if(!roblox){
     io.of(`/games/${gameID}/server/${serverID}/chat-server`).emit('chat-message', chatEntry);
   }else{
