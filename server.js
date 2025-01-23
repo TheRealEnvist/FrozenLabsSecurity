@@ -20,7 +20,7 @@ const serverRequestStatus = {};
 const serverPlayers = {};
 const ServerChats = {};
 
-const RefreshTokenToAccses = {};
+const VaildTokens = {};
 
 // Private:
 // App: 
@@ -79,6 +79,15 @@ async function postRequest(url, payload, options = { contentType: 'application/j
   }
 }
 
+async function RefreshTokenToAccess(token){
+    return await postRequest("https://apis.roblox.com/oauth/v1/token", {
+      ["refresh_token"]: tokenn,
+      ["grant_type"]: "refresh_token",
+      ["client_id"]: "1027663679860863056",
+      ["client_secret"]: "RBX-gTrSwFIOikmYDaWRZ6F4x_8Ne2zF5wyUsrZa1_EsqRLwbORcliwevszHUesW8kup"
+    },{ contentType: 'application/x-www-form-urlencoded' });
+}
+
 
 async function fetchWithRetry(url, retries = 0, maxRetries = 5, delayBetweenRequests = 10) {
   try {
@@ -119,6 +128,26 @@ function findInList(list, key, value) {
     }
     return list.find(item => item[key] === value) || null;
 }
+
+app.get('/profile/:code/register', async (req, res) => {
+  const { code } = req.params;
+
+
+  if(code != null){
+    const Verifing = await postRequest("https://apis.roblox.com/oauth/v1/token", {
+      ["code"]: code,
+      ["grant_type"]: "authorization_code",
+      ["client_id"]: "1027663679860863056",
+      ["client_secret"]: "RBX-gTrSwFIOikmYDaWRZ6F4x_8Ne2zF5wyUsrZa1_EsqRLwbORcliwevszHUesW8kup"
+    },{ contentType: 'application/x-www-form-urlencoded' });
+    if(Verifing["status"] == 200){
+      VaildTokens[Verifing["refresh_token"]] = true
+      res.status(200).json({verified:  true, token: Verifing["refresh_token"]});
+    }else{
+      res.status(Verifing["status"]).json({ verified:  false});
+    }
+  }
+});
 
 // Endpoint to handle chat messages
 app.post('/games/:gameID/server/:serverID/chat', (req, res) => {
@@ -259,24 +288,7 @@ app.get('/games/:gameID/server/:serverID/players', (req, res) => {
   });
 });
 
-app.get('/profile/:code/register', async (req, res) => {
-  const { code } = req.params;
 
-
-  if(code != null){
-    const Verifing = await postRequest("https://apis.roblox.com/oauth/v1/token", {
-      ["code"]: code,
-      ["grant_type"]: "authorization_code",
-      ["client_id"]: "1027663679860863056",
-      ["client_secret"]: "RBX-gTrSwFIOikmYDaWRZ6F4x_8Ne2zF5wyUsrZa1_EsqRLwbORcliwevszHUesW8kup"
-    },{ contentType: 'application/x-www-form-urlencoded' });
-    if(Verifing["status"] == 200){
-      res.status(200).json({data:  Verifing});
-    }else{
-      res.status(Verifing["status"]).json({ data:  Verifing});
-    }
-  }
-});
 
 // Endpoint for player headshots
 app.get('/games/:gameID/server/:serverID/playerHeadshots', async (req, res) => {
