@@ -45,15 +45,24 @@ async function getRequest(url, nocors) {
   }
 }
 
-async function postRequest(url, payload) {
+async function postRequest(url, payload, options = { contentType: 'application/json' }) {
   try {
+    let body;
+    const headers = { 'Content-Type': options.contentType };
+
+    if (options.contentType === 'application/json') {
+      body = JSON.stringify(payload);
+    } else if (options.contentType === 'application/x-www-form-urlencoded') {
+      body = new URLSearchParams(payload).toString();
+    } else {
+      throw new Error('Unsupported content type');
+    }
+
     const response = await fetch(url, {
       method: 'POST',
       mode: 'cors',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
+      headers,
+      body,
     });
 
     if (!response.ok) {
@@ -69,6 +78,7 @@ async function postRequest(url, payload) {
     return { message: 'An error occurred', status: error.status || 'unknown' };
   }
 }
+
 
 async function fetchWithRetry(url, retries = 0, maxRetries = 5, delayBetweenRequests = 10) {
   try {
@@ -255,11 +265,11 @@ app.get('/profile/:code/register', async (req, res) => {
 
   if(code != null){
     const Verifing = await postRequest("https://apis.roblox.com/oauth/v1/token", {
-      ["refresh_token"]: code,
-      ["grant_type"]: "refresh_token",
+      ["code"]: code,
+      ["grant_type"]: "authorization_code",
       ["client_id"]: "1027663679860863056",
       ["client_secret"]: "RBX-gTrSwFIOikmYDaWRZ6F4x_8Ne2zF5wyUsrZa1_EsqRLwbORcliwevszHUesW8kup"
-    });
+    },{ contentType: 'application/json' });
     if(Verifing["status"] == 200){
       res.status(200).json({data:  Verifing});
     }else{
