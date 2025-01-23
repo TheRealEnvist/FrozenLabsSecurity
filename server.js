@@ -131,7 +131,7 @@ app.post('/games/:gameID/server/:serverID/server-chat', (req, res) => {
   const { gameID, serverID } = req.params;
   const { messageID, add, message} = req.body;
 
-  if (!messageID) {
+  if (!messageID && !add) {
     return res.status(400).send('Message ID Required');
   }
 
@@ -147,7 +147,7 @@ app.post('/games/:gameID/server/:serverID/server-chat', (req, res) => {
     ServerChats[gameID][serverID+"_ServerChats"][messageID] = null;
     res.status(200).send('Message deleted.');
   }else{
-    ServerChats[gameID][serverID+"_ServerChats"][messageID] = message;
+    ServerChats[gameID][serverID+"_ServerChats"][ServerChats[gameID][serverID+"_ServerChats"].length+1] = message;
     res.status(200).send('Message Added.');
   }
 });
