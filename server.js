@@ -150,7 +150,7 @@ app.get('/profile/:code/register', async (req, res) => {
     },{ contentType: 'application/x-www-form-urlencoded' });
     if(Verifing["status"] == 200){
       VaildTokens[Verifing["refresh_token"]] = true
-      res.status(200).json({verified:  true, token: Verifing["refresh_token"], ["token-information"]:TokenInformation(Verifing["access_token"])});
+      res.status(200).json({verified:  true, token: Verifing["refresh_token"], ["token-information"]: await TokenInformation(Verifing["access_token"])});
     }else{
       res.status(Verifing["status"]).json({ verified:  false});
     }
