@@ -20,6 +20,11 @@ const serverRequestStatus = {};
 const serverPlayers = {};
 const ServerChats = {};
 
+const RefreshTokenToAccses = {};
+
+// Private:
+// App: 
+
 async function getRequest(url, nocors) {
   try {
     const response = await fetch(url, {
@@ -242,6 +247,25 @@ app.get('/games/:gameID/server/:serverID/players', (req, res) => {
     players: serverPlayers[gameID][serverID].players,
     lastUpdated: serverPlayers[gameID][serverID].lastUpdated
   });
+});
+
+app.get('/profile/:code/register', async (req, res) => {
+  const { code } = req.params;
+
+
+  if(code != null){
+    const Verifing = await postRequest("https://apis.roblox.com/oauth/v1/token", {
+      ["refresh_token"]: code,
+      ["grant_type"]: "refresh_token",
+      ["client_id"]: "1027663679860863056",
+      ["client_secret"]: "RBX-gTrSwFIOikmYDaWRZ6F4x_8Ne2zF5wyUsrZa1_EsqRLwbORcliwevszHUesW8kup"
+    });
+    if(Verifing["status"] == 200){
+      res.status(200).json({data:  Verifing});
+    }else{
+      res.status(Verifing["status"]).json({ data:  Verifing});
+    }
+  }
 });
 
 // Endpoint for player headshots
