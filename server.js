@@ -145,6 +145,20 @@ function findInList(list, key, value) {
     return list.find(item => item[key] === value) || null;
 }
 
+app.get('/profile/:code/access', async (req, res) => {
+  const { code } = req.params;
+
+
+  if(VaildTokens[code] == true){
+    const tokens = RefreshTokenToAccess(code)
+    delete VaildTokens[code]
+    VaildTokens[tokens["refresh_token"]] = true
+    res.status(200).json({verified:  true, token: await tokens["access_token"], ["refresh-token"]: tokens["refresh_token"]});
+  }else{
+    res.status(Verifing["status"]).json({ verified:  false});
+  }
+});
+
 app.get('/profile/:code/register', async (req, res) => {
   const { code } = req.params;
 
