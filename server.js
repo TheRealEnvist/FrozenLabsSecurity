@@ -81,11 +81,19 @@ async function postRequest(url, payload, options = { contentType: 'application/j
 
 async function RefreshTokenToAccess(token){
     return await postRequest("https://apis.roblox.com/oauth/v1/token", {
-      ["refresh_token"]: tokenn,
+      ["refresh_token"]: token,
       ["grant_type"]: "refresh_token",
       ["client_id"]: "1027663679860863056",
       ["client_secret"]: "RBX-gTrSwFIOikmYDaWRZ6F4x_8Ne2zF5wyUsrZa1_EsqRLwbORcliwevszHUesW8kup"
     },{ contentType: 'application/x-www-form-urlencoded' });
+}
+
+async function TokenInformation(token){
+  return await postRequest("https://apis.roblox.com/oauth/v1/token/introspect", {
+    ["token"]: token,
+    ["client_id"]: "1027663679860863056",
+    ["client_secret"]: "RBX-gTrSwFIOikmYDaWRZ6F4x_8Ne2zF5wyUsrZa1_EsqRLwbORcliwevszHUesW8kup"
+  },{ contentType: 'application/x-www-form-urlencoded' });
 }
 
 
@@ -142,7 +150,7 @@ app.get('/profile/:code/register', async (req, res) => {
     },{ contentType: 'application/x-www-form-urlencoded' });
     if(Verifing["status"] == 200){
       VaildTokens[Verifing["refresh_token"]] = true
-      res.status(200).json({verified:  true, token: Verifing["refresh_token"]});
+      res.status(200).json({verified:  true, token: Verifing["refresh_token"], ["token-information"]:TokenInformation(Verifing["access_token"])});
     }else{
       res.status(Verifing["status"]).json({ verified:  false});
     }
