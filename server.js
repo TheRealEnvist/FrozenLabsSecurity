@@ -18,7 +18,7 @@ app.use(cors());
 
 const serverRequestStatus = {};
 const serverPlayers = {};
-const chatMessages = [];
+const ServerChats = {};
 
 async function getRequest(url, nocors) {
   try {
@@ -108,24 +108,41 @@ function findInList(list, key, value) {
 // Endpoint to handle chat messages
 app.post('/games/:gameID/server/:serverID/chat', (req, res) => {
   const { gameID, serverID } = req.params;
-  const { username, message } = req.body;
+  const { username, display, message, roblox} = req.body;
 
-  if (!username || !message) {
-    return res.status(400).send('Username and message are required.');
+  if (!username || !display || !message) {
+    return res.status(400).send('Username, Display and message are required.');
   }
 
-  const chatEntry = { gameID, serverID, username, message, timestamp: new Date().toISOString() };
+  if(!ServerChats[gameID]){
+    ServerChats[gameID] = {}
+  }
+  if(!ServerChats[gameID][serverID]){
+    ServerChats[gameID][serverID] = [];
+  }
+
+  const chatEntry = {username, display, message, timestamp: new Date().toISOString() };
+  ServerChats[gameID][serverID].unshift(chatEntry)
   chatMessages.push(chatEntry);
-  io.emit('chat-message', chatEntry);
+  if(!roblox){
+    io.of(`/games/${gameID}/server/${serverID}/chat-server`).emit('chat-message', chatEntry);
+  }else{
+    io.of(`/games/${gameID}/server/${serverID}/chat-server`).emit('chat-message-server', chatEntry);
+  }
   res.status(200).send('Message received and broadcasted.');
 });
 
 app.get('/games/:gameID/server/:serverID/chat', (req, res) => {
   const { gameID, serverID } = req.params;
-  const filteredMessages = chatMessages.filter(
-    (msg) => msg.gameID === gameID && msg.serverID === serverID
-  );
-  res.json(filteredMessages);
+  if(!ServerChats[gameID]){
+    ServerChats[gameID] = {}
+  }
+  if(!ServerChats[gameID][serverID]){
+    ServerChats[gameID][serverID] = [];
+  }
+  res.json({
+    ["Messages"]:  ServerChats[gameID][serverID]
+  });
 });
 
 app.post('/games/:gameID/server/:serverID/requests', (req, res) => {
