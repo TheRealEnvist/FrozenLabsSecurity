@@ -147,7 +147,7 @@ app.post('/games/:gameID/server/:serverID/server-chat', (req, res) => {
     ServerChats[gameID][serverID+"_ServerChats"][messageID] = null;
     res.status(200).send('Message deleted.');
   }else{
-    ServerChats[gameID][serverID+"_ServerChats"][ServerChats[gameID][serverID+"_ServerChats"].length+1] = message;
+    ServerChats[gameID][serverID+"_ServerChats"][Object.keys(ServerChats[gameID][serverID+"_ServerChats"]).length+1] = message;
     res.status(200).send('Message Added.');
   }
 });
