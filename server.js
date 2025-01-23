@@ -145,25 +145,21 @@ app.get('/games/:gameID/server/:serverID/chat', (req, res) => {
 });
 
 io.of(/^\/games\/\w+\/server\/\w+\/chat-server$/).on('connection', (socket) => {
-  const namespace = socket.nsp.name; // Get the namespace (e.g., "/games/game123/server/server456/chat-server")
+  const namespace = socket.nsp.name; // The namespace, e.g., "/games/1/server/1/chat-server"
   console.log(`Client connected to namespace: ${namespace}`);
 
-  // Listen for incoming chat messages
+  // Handle a custom event (e.g., "chat-message")
   socket.on('chat-message', (chatEntry) => {
-      console.log(`[${namespace}] Received chat message:`, chatEntry);
+      console.log(`[${namespace}] Chat message received:`, chatEntry);
 
-      // Emit the message to all connected clients in the namespace
+      // Broadcast the message to all clients in the namespace
       socket.nsp.emit('chat-message', chatEntry);
   });
 
+  // Handle disconnection
   socket.on('disconnect', () => {
       console.log(`Client disconnected from namespace: ${namespace}`);
   });
-});
-
-app.get('/games/:gameID/server/:serverID/chat-server', (req, res) => {
-
-  res.json("Hiii this is the chat server :)");
 });
 
 app.post('/games/:gameID/server/:serverID/requests', (req, res) => {
