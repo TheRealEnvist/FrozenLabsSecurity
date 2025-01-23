@@ -153,7 +153,8 @@ app.post('/games/:gameID/server/:serverID/server-chat', (req, res) => {
 });
 
 app.get('/games/:gameID/server/:serverID/register-server-chat', (req, res) => {
-  io.of(`/games/${gameID}/server/${serverID}/chat-server`).emit("Register")
+  io.of(`/games/${gameID}/server/${serverID}/chat-server`).emit('chat-message',{Message:"Registered"})
+  res.status(200).send('Registered');
 });
 
 app.get('/games/:gameID/server/:serverID/server-chats', (req, res) => {
