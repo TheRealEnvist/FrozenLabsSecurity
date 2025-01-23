@@ -153,6 +153,7 @@ app.post('/games/:gameID/server/:serverID/server-chat', (req, res) => {
 });
 
 app.get('/games/:gameID/server/:serverID/register-server-chat', (req, res) => {
+  const { gameID, serverID } = req.params;
   io.of(`/games/${gameID}/server/${serverID}/chat-server`).emit('chat-message',{Message:"Registered"})
   res.status(200).send('Registered');
 });
