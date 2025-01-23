@@ -3,6 +3,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
+const pollingClients = {};
 
 const app = express();
 const server = http.createServer(app);
@@ -96,6 +97,18 @@ async function fetchWithRetry(url, retries = 0, maxRetries = 5, delayBetweenRequ
   }
 }
 
+function broadcastToPollingClients(gameID, serverID, message) {
+  if (pollingClients[gameID] && pollingClients[gameID][serverID]) {
+    // Notify all polling clients and close their connections
+    pollingClients[gameID][serverID].forEach(client => {
+      client.res.json(message);
+    });
+    // Clear the polling clients for the server
+    pollingClients[gameID][serverID] = [];
+  }
+}
+
+
 
 
 function findInList(list, key, value) {
@@ -108,26 +121,31 @@ function findInList(list, key, value) {
 // Endpoint to handle chat messages
 app.post('/games/:gameID/server/:serverID/chat', (req, res) => {
   const { gameID, serverID } = req.params;
-  const { username, display, message, roblox} = req.body;
+  const { username, display, message, roblox } = req.body;
 
   if (!username || !display || !message) {
     return res.status(400).send('Username, Display and message are required.');
   }
 
-  if(!ServerChats[gameID]){
-    ServerChats[gameID] = {}
+  if (!ServerChats[gameID]) {
+    ServerChats[gameID] = {};
   }
-  if(!ServerChats[gameID][serverID]){
+  if (!ServerChats[gameID][serverID]) {
     ServerChats[gameID][serverID] = [];
   }
 
-  const chatEntry = {username, display, message, timestamp: new Date().toISOString() };
-  ServerChats[gameID][serverID].unshift(chatEntry)
-  if(!roblox){
+  const chatEntry = { username, display, message, timestamp: new Date().toISOString() };
+  ServerChats[gameID][serverID].unshift(chatEntry);
+
+  if (!roblox) {
     io.of(`/games/${gameID}/server/${serverID}/chat-server`).emit('chat-message', chatEntry);
-  }else{
+  } else {
     io.of(`/games/${gameID}/server/${serverID}/chat-server`).emit('chat-message-server', chatEntry);
   }
+
+  // Notify polling clients
+  broadcastToPollingClients(gameID, serverID, chatEntry);
+
   res.status(200).send('Message received and broadcasted.');
 });
 
@@ -144,23 +162,28 @@ app.get('/games/:gameID/server/:serverID/chat', (req, res) => {
   });
 });
 
-io.of(/^\/games\/\w+\/server\/\w+\/chat-server$/).on('connection', (socket) => {
-  const namespace = socket.nsp.name; // The namespace, e.g., "/games/1/server/1/chat-server"
-  console.log(`Client connected to namespace: ${namespace}`);
 
-  // Handle a custom event (e.g., "chat-message")
-  socket.on('chat-message', (chatEntry) => {
-      console.log(`[${namespace}] Chat message received:`, chatEntry);
 
-      // Broadcast the message to all clients in the namespace
-      socket.nsp.emit('chat-message', chatEntry);
-  });
+app.get('/games/:gameID/server/:serverID/chat-server', (req, res) => {
+  const { gameID, serverID } = req.params;
 
-  // Handle disconnection
-  socket.on('disconnect', () => {
-      console.log(`Client disconnected from namespace: ${namespace}`);
+  if (!pollingClients[gameID]) {
+    pollingClients[gameID] = {};
+  }
+  if (!pollingClients[gameID][serverID]) {
+    pollingClients[gameID][serverID] = [];
+  }
+
+  // Keep the connection open until a new message or timeout
+  const clientId = Date.now() + Math.random();
+  pollingClients[gameID][serverID].push({ id: clientId, res });
+
+  req.on('close', () => {
+    // Remove the client when they disconnect
+    pollingClients[gameID][serverID] = pollingClients[gameID][serverID].filter(client => client.id !== clientId);
   });
 });
+
 
 app.post('/games/:gameID/server/:serverID/requests', (req, res) => {
   const { gameID, serverID } = req.params;
@@ -292,3 +315,16 @@ const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
   console.log(`Server running on http://0.0.0.0:${PORT}`);
 });
+
+
+// Polling
+
+// Polling connections store
+
+
+// Endpoint to register polling clients
+
+
+// Broadcast new messages to polling clients
+
+// Update existing POST endpoint to notify polling clients
