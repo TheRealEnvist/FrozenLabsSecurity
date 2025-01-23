@@ -3,7 +3,6 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
-const pollingClients = {};
 
 const app = express();
 const server = http.createServer(app);
@@ -97,18 +96,6 @@ async function fetchWithRetry(url, retries = 0, maxRetries = 5, delayBetweenRequ
   }
 }
 
-function broadcastToPollingClients(gameID, serverID, message) {
-  if (pollingClients[gameID] && pollingClients[gameID][serverID]) {
-    // Notify all polling clients and close their connections
-    pollingClients[gameID][serverID].forEach(client => {
-      client.res.json(message);
-    });
-    // Clear the polling clients for the server
-    pollingClients[gameID][serverID] = [];
-  }
-}
-
-
 
 
 function findInList(list, key, value) {
@@ -121,32 +108,61 @@ function findInList(list, key, value) {
 // Endpoint to handle chat messages
 app.post('/games/:gameID/server/:serverID/chat', (req, res) => {
   const { gameID, serverID } = req.params;
-  const { username, display, message, roblox } = req.body;
+  const { username, display, message} = req.body;
 
   if (!username || !display || !message) {
     return res.status(400).send('Username, Display and message are required.');
   }
 
-  if (!ServerChats[gameID]) {
-    ServerChats[gameID] = {};
+  if(!ServerChats[gameID]){
+    ServerChats[gameID] = {}
   }
-  if (!ServerChats[gameID][serverID]) {
+  if(!ServerChats[gameID][serverID]){
     ServerChats[gameID][serverID] = [];
   }
 
-  const chatEntry = { username, display, message, timestamp: new Date().toISOString() };
-  ServerChats[gameID][serverID].unshift(chatEntry);
+  const chatEntry = {username, display, message, timestamp: new Date().toISOString() };
+  ServerChats[gameID][serverID].unshift(chatEntry)
+  io.of(`/games/${gameID}/server/${serverID}/chat-server`).emit('chat-message', chatEntry);
+  res.status(200).send('Message received and broadcasted.');
+});
 
-  if (!roblox) {
-    io.of(`/games/${gameID}/server/${serverID}/chat-server`).emit('chat-message', chatEntry);
-  } else {
-    io.of(`/games/${gameID}/server/${serverID}/chat-server`).emit('chat-message-server', chatEntry);
+app.post('/games/:gameID/server/:serverID/server-chat', (req, res) => {
+  const { gameID, serverID } = req.params;
+  const { messageID, add, message} = req.body;
+
+  if (!messageID) {
+    return res.status(400).send('Message ID Required');
   }
 
-  // Notify polling clients
-  broadcastToPollingClients(gameID, serverID, chatEntry);
+  if(!ServerChats[gameID]){
+    ServerChats[gameID] = {}
+  }
+  if(!ServerChats[gameID][serverID+"_ServerChats"]){
+    ServerChats[gameID][serverID+"_ServerChats"] = {};
+  }
 
-  res.status(200).send('Message received and broadcasted.');
+
+  if(!add){
+    ServerChats[gameID][serverID+"_ServerChats"][messageID] = null;
+    res.status(200).send('Message deleted.');
+  }else{
+    ServerChats[gameID][serverID+"_ServerChats"][messageID] = message;
+    res.status(200).send('Message Added.');
+  }
+});
+
+app.get('/games/:gameID/server/:serverID/server-chats', (req, res) => {
+  const { gameID, serverID } = req.params;
+  if(!ServerChats[gameID]){
+    ServerChats[gameID] = {}
+  }
+  if(!ServerChats[gameID][serverID+"_ServerChats"]){
+    ServerChats[gameID][serverID+"_ServerChats"] = {};
+  }
+  res.json({
+    ["Messages"]:  ServerChats[gameID][serverID+"_ServerChats"]
+  });
 });
 
 app.get('/games/:gameID/server/:serverID/chat', (req, res) => {
@@ -159,28 +175,6 @@ app.get('/games/:gameID/server/:serverID/chat', (req, res) => {
   }
   res.json({
     ["Messages"]:  ServerChats[gameID][serverID]
-  });
-});
-
-
-
-app.get('/games/:gameID/server/:serverID/chat-server', (req, res) => {
-  const { gameID, serverID } = req.params;
-
-  if (!pollingClients[gameID]) {
-    pollingClients[gameID] = {};
-  }
-  if (!pollingClients[gameID][serverID]) {
-    pollingClients[gameID][serverID] = [];
-  }
-
-  // Keep the connection open until a new message or timeout
-  const clientId = Date.now() + Math.random();
-  pollingClients[gameID][serverID].push({ id: clientId, res });
-
-  req.on('close', () => {
-    // Remove the client when they disconnect
-    pollingClients[gameID][serverID] = pollingClients[gameID][serverID].filter(client => client.id !== clientId);
   });
 });
 
@@ -317,14 +311,3 @@ server.listen(PORT, () => {
 });
 
 
-// Polling
-
-// Polling connections store
-
-
-// Endpoint to register polling clients
-
-
-// Broadcast new messages to polling clients
-
-// Update existing POST endpoint to notify polling clients
