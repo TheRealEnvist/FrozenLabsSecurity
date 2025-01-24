@@ -181,11 +181,22 @@ app.get('/universe/:UniverseID/information', async (req, res) => {
   const { UniverseID } = req.params;
 
   try {
+    // Fetch and parse Media
+    const mediaResponse = await fetchWithRetry(
+      `https://games.roblox.com/v2/games/${UniverseID}/media?fetchAllExperienceRelatedMedia=false`, 
+      10, 0, 5
+    );
+    const Media = await mediaResponse.json();
 
-    const Media = await fetchWithRetry(`https://games.roblox.com/v2/games/${UniverseID}/media?fetchAllExperienceRelatedMedia=false`, 10,0,5)
-    const Root = await fetchWithRetry(`https://games.roblox.com/v1/games?universeIds=${UniverseID}`, 10,0,5)
+    // Fetch and parse Root
+    const rootResponse = await fetchWithRetry(
+      `https://games.roblox.com/v1/games?universeIds=${UniverseID}`, 
+      10, 0, 5
+    );
+    const Root = await rootResponse.json();
 
-    res.status(200).json({RootPlace: Root, Media: Media});
+    // Send the parsed data as JSON
+    res.status(200).json({ RootPlace: Root, Media: Media });
   } catch (error) {
     console.error('Error fetching Information:', error);
     res.status(500).json({ error: 'Failed to fetch Information.' });
