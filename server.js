@@ -162,8 +162,8 @@ app.get('/profile/:code/access', async (req, res) => {
 app.get('/universe/:UniverseID/information', async (req, res) => {
   const { UniverseID } = req.params;
 
-  const Media = await fetchWithRetry(`https://games.roblox.com/v2/games/${UniverseID}/media?fetchAllExperienceRelatedMedia=false`)
-  const Root = await fetchWithRetry(`https://games.roblox.com/v1/games?universeIds=${UniverseID}`)
+  const Media = await getRequest(`https://games.roblox.com/v2/games/${UniverseID}/media?fetchAllExperienceRelatedMedia=false`)
+  const Root = await getRequest(`https://games.roblox.com/v1/games?universeIds=${UniverseID}`)
 
   res.status(200).json({RootPlace: Root, Media: Media});
 });
