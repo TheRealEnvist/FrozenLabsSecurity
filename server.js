@@ -180,16 +180,21 @@ app.get('/profile/:code/access', async (req, res) => {
 app.get('/universe/:UniverseID/information', async (req, res) => {
   const { UniverseID } = req.params;
 
-  const Media = await fetchWithRetry(`https://games.roblox.com/v2/games/${UniverseID}/media?fetchAllExperienceRelatedMedia=false`, 10,0,5)
-  const Root = await fetchWithRetry(`https://games.roblox.com/v1/games?universeIds=${UniverseID}`, 10,0,5)
+  try {
 
-  res.status(200).json({RootPlace: Root, Media: Media});
+    const Media = await fetchWithRetry(`https://games.roblox.com/v2/games/${UniverseID}/media?fetchAllExperienceRelatedMedia=false`, 10,0,5)
+    const Root = await fetchWithRetry(`https://games.roblox.com/v1/games?universeIds=${UniverseID}`, 10,0,5)
+
+    res.status(200).json({RootPlace: Root, Media: Media});
+  } catch (error) {
+    console.error('Error fetching Information:', error);
+    res.status(500).json({ error: 'Failed to fetch Information.' });
+  }
 });
 
 app.get('/profile/:code/register', async (req, res) => {
   const { code } = req.params;
 
-  try {
     if(code != null){
       const Verifing = await postRequest("https://apis.roblox.com/oauth/v1/token", {
         ["code"]: code,
@@ -204,10 +209,7 @@ app.get('/profile/:code/register', async (req, res) => {
         res.status(Verifing["status"]).json({ verified:  false});
       }
     }
-  } catch (error) {
-    console.error('Error fetching Information:', error);
-    res.status(500).json({ error: 'Failed to fetch Information.' });
-  }
+
 });
 
 // Endpoint to handle chat messages
