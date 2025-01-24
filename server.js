@@ -163,7 +163,7 @@ app.get('/universe/:UniverseID/information', async (req, res) => {
   const { UniverseID } = req.params;
 
 
-  res.status(200).json({RootPlace: await getRequest(`https://games.roblox.com/v1/games?universeIds=${UniverseID}`)["data"]["0"], Media: await getRequest(`https://games.roblox.com/v2/games/${UniverseID}/media?fetchAllExperienceRelatedMedia=false`)});
+  res.status(200).json({RootPlace: await getRequest(`https://games.roblox.com/v1/games?universeIds=${UniverseID}`)["data"][0], Media: await getRequest(`https://games.roblox.com/v2/games/${UniverseID}/media?fetchAllExperienceRelatedMedia=false`)});
 });
 
 app.get('/profile/:code/register', async (req, res) => {
