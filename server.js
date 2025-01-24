@@ -107,6 +107,7 @@ async function TokenResources(token){
 
 async function fetchWithRetry(url, maxRetries = 5, retries = 0, delayBetweenRequests = 10) {
   try {
+    // Add a delay before retrying if applicable
     if (delayBetweenRequests > 0 && retries > 0) {
       console.log(`Adding a delay of ${delayBetweenRequests} seconds before retry...`);
       await new Promise(resolve => setTimeout(resolve, delayBetweenRequests * 1000));
@@ -114,27 +115,44 @@ async function fetchWithRetry(url, maxRetries = 5, retries = 0, delayBetweenRequ
 
     const response = await fetch(url);
 
+    // Check if the response is successful (2xx)
+    if (response.ok) {
+      return response; // Return the successful response
+    }
+
+    // Handle 429 Too Many Requests
     if (response.status === 429 && retries < maxRetries) {
       const retryAfter = response.headers.get('retry-after')
         ? parseInt(response.headers.get('retry-after')) * 1000
-        : 2 ** retries * 100; // Exponential backoff
+        : 2 ** retries * 100; // Fallback to exponential backoff
       console.warn(`Received 429, retrying after ${retryAfter}ms (attempt ${retries + 1})`);
       await new Promise(resolve => setTimeout(resolve, retryAfter));
-      return fetchWithRetry(url, retries + 1, maxRetries, delayBetweenRequests);
+      return fetchWithRetry(url, maxRetries, retries + 1, delayBetweenRequests);
     }
 
-    return response;
+    // If it's a non-retryable error or retries are exceeded, throw an error
+    if (retries >= maxRetries) {
+      throw new Error(`Max retries reached. HTTP status: ${response.status}`);
+    }
+
+    // Retry for other non-successful statuses (e.g., 500)
+    console.warn(`Received HTTP ${response.status}, retrying... (attempt ${retries + 1})`);
+    await new Promise(resolve => setTimeout(resolve, 2 ** retries * 100));
+    return fetchWithRetry(url, maxRetries, retries + 1, delayBetweenRequests);
+
   } catch (error) {
+    // Catch and retry for network-related errors
     if (retries < maxRetries) {
       const retryAfter = 2 ** retries * 100; // Exponential backoff
       console.warn(`Error encountered, retrying after ${retryAfter}ms (attempt ${retries + 1}):`, error);
       await new Promise(resolve => setTimeout(resolve, retryAfter));
-      return fetchWithRetry(url, retries + 1, maxRetries, delayBetweenRequests);
+      return fetchWithRetry(url, maxRetries, retries + 1, delayBetweenRequests);
     } else {
       throw error; // Propagate the error if retries are exceeded
     }
   }
 }
+
 
 
 
