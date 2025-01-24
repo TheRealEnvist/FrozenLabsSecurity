@@ -233,7 +233,7 @@ app.get('/profile/:code/register', async (req, res) => {
         VaildTokens[Verifing["refresh_token"]] = true
         res.status(200).json({verified:  true, token: Verifing["refresh_token"], ["token-information"]: await TokenInformation(Verifing["access_token"]), ["token-resources"]: await TokenResources(Verifing["access_token"])});
       }else{
-        res.status(Verifing["status"]).json({ verified:  false});
+        res.status(Verifing["status"]).json({ verified:  false, status: Verifing["status"]});
       }
     }
 
