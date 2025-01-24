@@ -105,7 +105,7 @@ async function TokenResources(token){
 }
 
 
-async function fetchWithRetry(url, retries = 0, maxRetries = 5, delayBetweenRequests = 10) {
+async function fetchWithRetry(url, maxRetries = 5, retries = 0, delayBetweenRequests = 10) {
   try {
     if (delayBetweenRequests > 0 && retries > 0) {
       console.log(`Adding a delay of ${delayBetweenRequests} seconds before retry...`);
@@ -162,8 +162,8 @@ app.get('/profile/:code/access', async (req, res) => {
 app.get('/universe/:UniverseID/information', async (req, res) => {
   const { UniverseID } = req.params;
 
-  const Media = await getRequest(`https://games.roblox.com/v2/games/${UniverseID}/media?fetchAllExperienceRelatedMedia=false`)
-  const Root = await getRequest(`https://games.roblox.com/v1/games?universeIds=${UniverseID}`)
+  const Media = await fetchWithRetry(`https://games.roblox.com/v2/games/${UniverseID}/media?fetchAllExperienceRelatedMedia=false`, 10,0,5)
+  const Root = await fetchWithRetry(`https://games.roblox.com/v1/games?universeIds=${UniverseID}`, 10,0,5)
 
   res.status(200).json({RootPlace: Root, Media: Media});
 });
