@@ -171,20 +171,24 @@ app.get('/universe/:UniverseID/information', async (req, res) => {
 app.get('/profile/:code/register', async (req, res) => {
   const { code } = req.params;
 
-
-  if(code != null){
-    const Verifing = await postRequest("https://apis.roblox.com/oauth/v1/token", {
-      ["code"]: code,
-      ["grant_type"]: "authorization_code",
-      ["client_id"]: "1027663679860863056",
-      ["client_secret"]: "RBX-gTrSwFIOikmYDaWRZ6F4x_8Ne2zF5wyUsrZa1_EsqRLwbORcliwevszHUesW8kup"
-    },{ contentType: 'application/x-www-form-urlencoded' });
-    if(Verifing["status"] == 200){
-      VaildTokens[Verifing["refresh_token"]] = true
-      res.status(200).json({verified:  true, token: Verifing["refresh_token"], ["token-information"]: await TokenInformation(Verifing["access_token"]), ["token-resources"]: await TokenResources(Verifing["access_token"])});
-    }else{
-      res.status(Verifing["status"]).json({ verified:  false});
+  try {
+    if(code != null){
+      const Verifing = await postRequest("https://apis.roblox.com/oauth/v1/token", {
+        ["code"]: code,
+        ["grant_type"]: "authorization_code",
+        ["client_id"]: "1027663679860863056",
+        ["client_secret"]: "RBX-gTrSwFIOikmYDaWRZ6F4x_8Ne2zF5wyUsrZa1_EsqRLwbORcliwevszHUesW8kup"
+      },{ contentType: 'application/x-www-form-urlencoded' });
+      if(Verifing["status"] == 200){
+        VaildTokens[Verifing["refresh_token"]] = true
+        res.status(200).json({verified:  true, token: Verifing["refresh_token"], ["token-information"]: await TokenInformation(Verifing["access_token"]), ["token-resources"]: await TokenResources(Verifing["access_token"])});
+      }else{
+        res.status(Verifing["status"]).json({ verified:  false});
+      }
     }
+  } catch (error) {
+    console.error('Error fetching Information:', error);
+    res.status(500).json({ error: 'Failed to fetch Information.' });
   }
 });
 
