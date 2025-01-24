@@ -177,6 +177,24 @@ app.get('/profile/:code/access', async (req, res) => {
   }
 });
 
+app.get('/thumbnails/:id/', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const mediaResponse = await fetchWithRetry(
+      `https://thumbnails.roblox.com/v1/assets?assetIds=${id}&returnPolicy=PlaceHolder&size=768x432&format=Png&isCircular=false`, 
+      10, 0, 5
+    );
+    const Media = await mediaResponse.json();
+
+    // Send the parsed data as JSON
+    res.status(200).json({ Media: Media });
+  } catch (error) {
+    console.error('Error fetching Information:', error);
+    res.status(500).json({ error: 'Failed to fetch Information.' });
+  }
+});
+
 app.get('/universe/:UniverseID/information', async (req, res) => {
   const { UniverseID } = req.params;
 
