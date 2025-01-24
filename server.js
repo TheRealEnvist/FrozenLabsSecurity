@@ -109,7 +109,6 @@ async function fetchWithRetry(url, maxRetries = 5, retries = 0, delayBetweenRequ
   try {
     // Add a delay before retrying if applicable
     if (delayBetweenRequests > 0 && retries > 0) {
-      console.log(`Adding a delay of ${delayBetweenRequests} seconds before retry...`);
       await new Promise(resolve => setTimeout(resolve, delayBetweenRequests * 1000));
     }
 
@@ -125,7 +124,6 @@ async function fetchWithRetry(url, maxRetries = 5, retries = 0, delayBetweenRequ
       const retryAfter = response.headers.get('retry-after')
         ? parseInt(response.headers.get('retry-after')) * 1000
         : 2 ** retries * 100; // Fallback to exponential backoff
-      console.warn(`Received 429, retrying after ${retryAfter}ms (attempt ${retries + 1})`);
       await new Promise(resolve => setTimeout(resolve, retryAfter));
       return fetchWithRetry(url, maxRetries, retries + 1, delayBetweenRequests);
     }
