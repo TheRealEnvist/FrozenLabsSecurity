@@ -223,13 +223,12 @@ app.get('/profile/:code/register', async (req, res) => {
   const { code } = req.params;
 
     if(code != null){
-      const VerifingResponse = await postRequest("https://apis.roblox.com/oauth/v1/token", {
+      const Verifing = await postRequest("https://apis.roblox.com/oauth/v1/token", {
         ["code"]: code,
         ["grant_type"]: "authorization_code",
         ["client_id"]: "1027663679860863056",
         ["client_secret"]: "RBX-gTrSwFIOikmYDaWRZ6F4x_8Ne2zF5wyUsrZa1_EsqRLwbORcliwevszHUesW8kup"
       },{ contentType: 'application/x-www-form-urlencoded' });
-      const Verifing = await VerifingResponse.json();
       if(Verifing["status"] == 200){
         VaildTokens[Verifing["refresh_token"]] = true
         res.status(200).json({verified:  true, token: Verifing["refresh_token"], ["token-information"]: await TokenInformation(Verifing["access_token"]), ["token-resources"]: await TokenResources(Verifing["access_token"])});
