@@ -22,6 +22,10 @@ const ServerChats = {};
 
 const VaildTokens = {};
 
+const websiteTokenToRefresh = {};
+
+const PrivateKey = process.env.PrivateKey
+
 // Private:
 // App: 
 
@@ -84,7 +88,7 @@ async function RefreshTokenToAccess(token){
       ["refresh_token"]: token,
       ["grant_type"]: "refresh_token",
       ["client_id"]: "1027663679860863056",
-      ["client_secret"]: "RBX-gTrSwFIOikmYDaWRZ6F4x_8Ne2zF5wyUsrZa1_EsqRLwbORcliwevszHUesW8kup"
+      ["client_secret"]: PrivateKey
     },{ contentType: 'application/x-www-form-urlencoded' });
 }
 
@@ -92,7 +96,7 @@ async function TokenInformation(token){
   return await postRequest("https://apis.roblox.com/oauth/v1/token/introspect", {
     ["token"]: token,
     ["client_id"]: "1027663679860863056",
-    ["client_secret"]: "RBX-gTrSwFIOikmYDaWRZ6F4x_8Ne2zF5wyUsrZa1_EsqRLwbORcliwevszHUesW8kup"
+    ["client_secret"]: PrivateKey
   },{ contentType: 'application/x-www-form-urlencoded' });
 }
 
@@ -100,7 +104,7 @@ async function TokenResources(token){
   return await postRequest("https://apis.roblox.com/oauth/v1/token/resources", {
     ["token"]: token,
     ["client_id"]: "1027663679860863056",
-    ["client_secret"]: "RBX-gTrSwFIOikmYDaWRZ6F4x_8Ne2zF5wyUsrZa1_EsqRLwbORcliwevszHUesW8kup"
+    ["client_secret"]: PrivateKey
   },{ contentType: 'application/x-www-form-urlencoded' });
 }
 
@@ -227,7 +231,7 @@ app.get('/profile/:code/register', async (req, res) => {
         ["code"]: code,
         ["grant_type"]: "authorization_code",
         ["client_id"]: "1027663679860863056",
-        ["client_secret"]: "RBX-gTrSwFIOikmYDaWRZ6F4x_8Ne2zF5wyUsrZa1_EsqRLwbORcliwevszHUesW8kup"
+        ["client_secret"]: PrivateKey
       },{ contentType: 'application/x-www-form-urlencoded' });
       if(Verifing["status"] == 200){
         VaildTokens[Verifing["refresh_token"]] = true
